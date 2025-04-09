@@ -112,9 +112,14 @@ if __name__ == "__main__":
     os.makedirs(checkpoints_folder, exist_ok=True)
     base_log_dir = './logs'
     # experiment params
-    dist_temp = 3
-    dist_alpha = 0 
-    exp_name = f'stu_resnet18_a_{dist_alpha}_t_{dist_temp}'
+    dist_temp = 1
+    dist_alpha = 0.4
+    assert dist_alpha <= 1, "Distillation alpha should be <= 1"
+    assert dist_alpha >= 0, "Distillation alpha should be >= 1"
+    assert dist_temp == int(dist_temp), "Distillation temp should an integer"
+    exp_alpha_name = int(str(dist_alpha).split('.')[1])
+
+    exp_name = f'stu_resnet18_a_{exp_alpha_name}_t_{dist_temp}'
     log_dir = base_log_dir + '/' + exp_name
     writer = SummaryWriter(log_dir=log_dir)
     early_stop_cpt_path = checkpoints_folder+exp_name+'.cpt'
