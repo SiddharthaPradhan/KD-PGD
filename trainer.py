@@ -103,6 +103,17 @@ def print_info(epoch, loss, acc, epoch_val_loss, epoch_val_acc):
     print_str += f"Val(loss/acc)={round(epoch_val_loss,4)}/{round(epoch_val_acc,4)}"
     print(print_str)
 
+def get_exp_alpha_name(dist_alpha):
+    str_a = str(dist_alpha)
+    if "." in str_a:
+        # check if first digit is 0
+        if str_a[0] == "0":
+            return int(str_a.split('.')[1])
+        else:
+            return 1
+    else:
+        return dist_alpha
+
 # TODO
 # add command args to run on slurm
 # So far: 0.002 with val acc=0.817, 15 epochs
@@ -117,7 +128,8 @@ if __name__ == "__main__":
     assert dist_alpha <= 1, "Distillation alpha should be <= 1"
     assert dist_alpha >= 0, "Distillation alpha should be >= 1"
     assert dist_temp == int(dist_temp), "Distillation temp should an integer"
-    exp_alpha_name = int(str(dist_alpha).split('.')[1])
+    
+    exp_alpha_name = get_exp_alpha_name(dist_alpha)
 
     exp_name = f'stu_resnet18_a_{exp_alpha_name}_t_{dist_temp}'
     log_dir = base_log_dir + '/' + exp_name
