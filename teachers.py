@@ -13,12 +13,13 @@ def get_teachers():
 
 
 if __name__ == "__main__":
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # check train acc for both teachers
     resnet_t = resnet.resnet50(True) 
     densenet_t = densenet.densenet161(True)
     train_dl, test_dl = get_loaders(32, 4)
-    print("ResNet50 Test Acc:", get_model_metrics(resnet_t, test_dl, 'cuda'))
-    print("densenet_t Test Acc:", get_model_metrics(densenet_t, test_dl, 'cuda'))
+    print("ResNet50 Test Acc:", get_model_metrics(resnet_t, test_dl, device=device))
+    print("DenseNet161 Test Acc:", get_model_metrics(densenet_t, test_dl, device=device))
 
     
             

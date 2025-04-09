@@ -25,6 +25,15 @@ wheels = [
 ]
 
 [[package]]
+name = "bottle"
+version = "0.13.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1b/fb/97839b95c2a2ea1ca91877a846988f90f4ca16ee42c0bb79e079171c0c06/bottle-0.13.2.tar.gz", hash = "sha256:e53803b9d298c7d343d00ba7d27b0059415f04b9f6f40b8d58b5bf914ba9d348", size = 98472 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7e/0a/a5260c758ff813acc6967344339aa7ba15f815575f4d49141685c4345d39/bottle-0.13.2-py2.py3-none-any.whl", hash = "sha256:27569ab8d1332fbba3e400b3baab2227ab4efb4882ff147af05a7c00ed73409c", size = 104053 },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -102,7 +111,9 @@ dependencies = [
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "optuna" },
+    { name = "optuna-dashboard" },
     { name = "scikit-learn" },
+    { name = "standard-imghdr" },
     { name = "tensorboard" },
     { name = "torch" },
     { name = "torchvision" },
@@ -113,7 +124,9 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.10.1" },
     { name = "numpy", specifier = ">=2.2.4" },
     { name = "optuna", specifier = ">=4.2.1" },
+    { name = "optuna-dashboard", specifier = ">=0.18.0" },
     { name = "scikit-learn", specifier = ">=1.6.1" },
+    { name = "standard-imghdr", specifier = ">=3.13.0" },
     { name = "tensorboard", specifier = ">=2.19.0" },
     { name = "torch", specifier = ">=2.6.0" },
     { name = "torchvision", specifier = ">=0.21.0" },
@@ -507,6 +520,21 @@ wheels = [
 ]
 
 [[package]]
+name = "optuna-dashboard"
+version = "0.18.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "bottle" },
+    { name = "optuna" },
+    { name = "packaging" },
+    { name = "scikit-learn" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ab/ef/cdfd144458e1598a5b67e291b9947032b72f095d76b2f5bb3ad0e37fcdaa/optuna_dashboard-0.18.0.tar.gz", hash = "sha256:be77394279efe2fb45ee63e5fe5622007ef0f06d47117e9b9c36e67716777dfd", size = 8335304 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fa/4a/3c55b8c49d0d096a8e97674fd505aaf38f9f3c743b2f89b8ca198210eb1f/optuna_dashboard-0.18.0-py3-none-any.whl", hash = "sha256:49f64d5750838fa59bceedcebf3359c1758eb74d1aa0aaab990bd9ce9ffb0638", size = 8356100 },
+]
+
+[[package]]
 name = "packaging"
 version = "24.2"
 source = { registry = "https://pypi.org/simple" }
@@ -683,6 +711,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/33/ac/e5e0a807163652a35be878c0ad5cfd8b1d29605edcadfb5df3c512cdf9f3/sqlalchemy-2.0.40-cp313-cp313-win32.whl", hash = "sha256:a669cbe5be3c63f75bcbee0b266779706f1a54bcb1000f302685b87d1b8c1500", size = 2080704 },
     { url = "https://files.pythonhosted.org/packages/1c/cb/f38c61f7f2fd4d10494c1c135ff6a6ddb63508d0b47bccccd93670637309/sqlalchemy-2.0.40-cp313-cp313-win_amd64.whl", hash = "sha256:641ee2e0834812d657862f3a7de95e0048bdcb6c55496f39c6fa3d435f6ac6ad", size = 2104564 },
     { url = "https://files.pythonhosted.org/packages/d1/7c/5fc8e802e7506fe8b55a03a2e1dab156eae205c91bee46305755e086d2e2/sqlalchemy-2.0.40-py3-none-any.whl", hash = "sha256:32587e2e1e359276957e6fe5dad089758bc042a971a8a09ae8ecf7a8fe23d07a", size = 1903894 },
+]
+
+[[package]]
+name = "standard-imghdr"
+version = "3.13.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1a/8d/ab2620fbe2e348483c9cb776c3b7b3cc407899291a041d7fa026469b7cd1/standard_imghdr-3.13.0.tar.gz", hash = "sha256:8d9c68058d882f6fc3542a8d39ef9ff94d2187dc90bd0c851e0902776b7b7a42", size = 5511 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/df/cb/e1da7e340586a078404c7e4328bfefc930867ace8a9a55916fd220cf9547/standard_imghdr-3.13.0-py3-none-any.whl", hash = "sha256:30a1bff5465605bb496f842a6ac3cc1f2131bf3025b0da28d4877d6d4b7cc8e9", size = 4639 },
 ]
 
 [[package]]

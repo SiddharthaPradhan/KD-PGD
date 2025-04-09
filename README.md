@@ -16,6 +16,7 @@ Instructions for training:
 
 ### Model Metrics
 
--   ResNet50 (Teacher): Train=94.3%, Test=90.9%
--   DenseNet (Teacher): Train=95.5%, Test=91.8%
--   GoogLenet (BlackBox Model): Train= , Test=90.9%
+-   ResNet50 (Teacher): Train=94.3%, Val=90.9%
+-   DenseNet (Teacher): Train=95.5%, Val=91.8%
+-   GoogLenet (BlackBox Model): Train=96.6%, Val=90.9%
+-   ResNet18 (Not Student): Train=96.0%, Val=91.2%

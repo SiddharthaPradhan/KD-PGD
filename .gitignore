@@ -11,3 +11,7 @@ wheels/
 
 data/
 models/state_dicts
+logs/
+checkpoints/
+
+db.sqlite3

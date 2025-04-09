@@ -27,7 +27,7 @@ def get_loaders(batch_size, num_workers):
             normalize,
         ]), download=True),
         batch_size=batch_size, shuffle=True,
-        num_workers=num_workers, pin_memory=True)
+        num_workers=num_workers, pin_memory=True, drop_last=True)
 
     val_loader = torch.utils.data.DataLoader(
             datasets.CIFAR10(root='./data', train=False, transform=transforms.Compose([
@@ -38,9 +38,6 @@ def get_loaders(batch_size, num_workers):
             num_workers=2, pin_memory=True)
     return train_loader, val_loader
 
-
-
-
 if __name__ == "__main__":
     # try to display some random images
     train_dl, val_dl = get_loaders(32, 2)
@@ -49,7 +46,6 @@ if __name__ == "__main__":
     images = inv_normalize(images)
     images = images.clamp(0, 1)
     collage = torchvision.utils.make_grid(images[:10], 2)
-    # collage = collage / 2 + 0.5
     collage = collage.numpy()
     print(np.max(collage), np.min(collage))
     plt.imshow(np.transpose(collage, (1, 2, 0)))
