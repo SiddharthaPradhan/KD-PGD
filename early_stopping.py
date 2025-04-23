@@ -4,7 +4,7 @@ import torch
 
 class EarlyStopping:
     """Early stops the training if validation loss doesn't improve after a given patience."""
-    def __init__(self, patience=7, verbose=False, delta=0, path='checkpoint.pt', trace_func=print):
+    def __init__(self, patience=7, verbose=False, delta=0, path='checkpoint.cpt', trace_func=print, direction='min'):
         """
         Args:
             patience (int): How long to wait after last time validation loss improved.
@@ -27,6 +27,10 @@ class EarlyStopping:
         self.delta = delta
         self.path = path
         self.trace_func = trace_func
+        if direction == 'min':
+            self.min=True
+        else:   
+            self.min=False
 
     def __call__(self, val_loss, model):
         # Check if validation loss is nan
@@ -34,6 +38,7 @@ class EarlyStopping:
             self.trace_func("Validation loss is NaN. Ignoring this epoch.")
             return
 
+        torch.save(model.state_dict(), self.path[:-4]+'-train.cpt')
         if self.best_val_loss is None:
             self.best_val_loss = val_loss
             self.save_checkpoint(val_loss, model)
@@ -45,7 +50,7 @@ class EarlyStopping:
         else:
             # No significant improvement
             self.counter += 1
-            self.trace_func(f'EarlyStopping patience counter: {self.counter} out of {self.patience}')
+            self.trace_func(f'EarlyStopping patience counter: {self.counter} out of {self.patience}. Best value: {self.best_val_loss}')
             if self.counter >= self.patience:
                 self.early_stop = True
 

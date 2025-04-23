@@ -15,15 +15,33 @@ def get_model_metrics(model: torch.nn.Module, dataloader: torch.utils.data.DataL
             pred = out.argmax(1)
             acc += torch.sum(pred == labels)
             if criterion is not None:
-                teacher_out = teacher(images)
-                loss += criterion(out, labels, teacher_out)
+                if teacher is not None:
+                    teacher_out = teacher(images)
+                    loss += criterion(out, labels, teacher_out)
+                else:
+                    loss += criterion(out, labels)
     acc = acc/len(dataloader.dataset) # per sample acc 
     if criterion is not None:
         loss = loss/len(dataloader) # per sample loss
         loss = loss.item()
     return loss, acc.item()
 
-
+def get_model_metrics_batch(model: torch.nn.Module, images, adv_images, labels, device='cpu'):
+    criterion = nn.CrossEntropyLoss()
+    model = model.to(device)
+    with torch.no_grad():
+        images, adv_images, labels = images.to(device), adv_images.to(device), labels.to(device)
+        out_real: torch.Tensor = model(images)
+        pred_real = out_real.argmax(1)
+        acc_real = torch.sum(pred_real == labels)
+        out_adv: torch.Tensor = model(adv_images)
+        
+        pred_adv = out_adv.argmax(1)
+        acc_adv = torch.sum(pred_adv == labels)
+        delta_acc = acc_real - acc_adv
+        print(f"Correct: (R:{acc_real}), (Adv:({acc_adv})) | Delta: {delta_acc} | Num : {images.size(0)}")
+        return acc_real, acc_adv, delta_acc
+        
 
 # define the loss for distillation
 def distillation_loss(out, labels, teacher_logits, alpha = 0, softmax_temp=1):

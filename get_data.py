@@ -6,6 +6,7 @@ import torch
 import numpy as np
 
 # mean and sd from https://github.com/huyvnphan/PyTorch_CIFAR10/blob/641cac24371b17052b9bb6e56af1c83b5e97cd7f/data.py#L16
+
 mean=[0.4914, 0.4822, 0.4465]
 std=[0.2471, 0.2435, 0.2616]
 
@@ -23,6 +24,8 @@ classes = ('plane', 'car', 'bird', 'cat',
 def get_loaders(batch_size, num_workers):
     train_loader = torch.utils.data.DataLoader(
         datasets.CIFAR10(root='./data', train=True, transform=transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,
         ]), download=True),
@@ -34,7 +37,7 @@ def get_loaders(batch_size, num_workers):
                 transforms.ToTensor(),
                 normalize,
             ])),
-            batch_size=128, shuffle=False,
+            batch_size=256, shuffle=False,
             num_workers=2, pin_memory=True)
     return train_loader, val_loader
 
