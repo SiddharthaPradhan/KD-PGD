@@ -1,10 +1,10 @@
 from models import resnet
 from models import densenet
-from get_data import get_loaders, classes
+from utils.get_data import get_loaders, classes
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
-from utils import get_model_metrics
+from utils.utils import get_model_metrics
 
 def get_teachers():
     resnet_t = resnet.resnet50(True) 

@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch
 from teachers import get_teachers
 from student import get_student
-from get_data import get_loaders
+from utils.get_data import get_loaders
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
 from utils import get_model_metrics, distillation_loss

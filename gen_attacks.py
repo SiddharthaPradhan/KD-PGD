@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from student import get_student
 from teachers import get_teachers
 from blackbox import get_blackbox
-from get_data import get_loaders
+from utils.get_data import get_loaders
 from utils import get_model_metrics
 from torch.nn import CrossEntropyLoss
 from attacks import attacks

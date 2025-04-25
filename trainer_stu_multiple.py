@@ -6,21 +6,21 @@ import torch.nn as nn
 import torch
 from teachers import get_teachers
 from student import get_student
-from get_data import get_loaders
+from utils.get_data import get_loaders
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from utils import get_model_metrics, distillation_loss
+from utils.utils import get_model_metrics, distillation_loss
 from torch.utils.tensorboard import SummaryWriter
-from early_stopping import EarlyStopping
-from utils import DistillationLoss
-from schduler import WarmupCosineLR
+from utils.early_stopping import EarlyStopping
+from utils.utils import DistillationLoss
+from utils.scheduler import WarmupCosineLR
 
 import os
 
 TRAIN_EPOCHS = 100
 
 def train(writer, cpt_path='student_res_18.cpt', patience=12, dist_alpha=0, dist_temp=1):
-    distill_loss = DistillationLoss(dist_alpha, dist_temp) # alpha=0, Temp=0
+    distill_loss = DistillationLoss(dist_alpha, dist_temp, teacher_type='multiple')
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # setup early stopping
     early_stopping = EarlyStopping(patience=patience, verbose=False, path=cpt_path)
@@ -35,36 +35,20 @@ def train(writer, cpt_path='student_res_18.cpt', patience=12, dist_alpha=0, dist
     # get ciphar-10 data
     train_dl, val_dl = get_loaders(256, 6)
     # setup optimizers and scheduler
-    learning_rate_init = 1e-3
+    learning_rate_init = 2e-3
     weight_decay = 1e-6
     optimizer = Adam(s1.parameters(), lr=learning_rate_init, weight_decay=weight_decay)
     total_steps = TRAIN_EPOCHS * len(train_dl)
-    scheduler = WarmupCosineLR(optimizer, warmup_epochs=total_steps * 0.3, max_epochs=total_steps)
-    # setup inital teacher
-    _switch_counter = 4
-    switch_counter = _switch_counter # switch teacher every 3 epochs
-    t1_select = False
-    teacher = t2
+    scheduler = WarmupCosineLR(optimizer, warmup_epochs=total_steps * 0.3, max_epochs=total_steps, eta_min=1e-6)
     epoch_val_acc = -1
+    teacher_list = [t1, t2]
     for epoch in range(0, TRAIN_EPOCHS):
-        # lets assume for now simple schedule
-        # teachers switch every 3 epochs
-        # TODO move this logic to a teacher_schedule function
-        switch_counter -= 1
-        if switch_counter == 0:
-            switch_counter = _switch_counter
-            if t1_select: # t1 was previous teacher
-                teacher = t2
-                t1_select = False
-            else: # t2 was previous teacher
-                teacher = t1
-                t1_select = True
-        loss, acc = train_epoch(s1, teacher, optimizer, 
+        loss, acc = train_epoch(s1, teacher_list, optimizer, 
                                 scheduler, train_dl, distill_loss, device)
         writer.add_scalar("Loss/train", loss, epoch)
         writer.add_scalar("Accuracy/train", acc, epoch)
         epoch_val_loss, epoch_val_acc = get_model_metrics(s1, val_dl, criterion=distill_loss,
-                                                          teacher=teacher, device=device)
+                                                          teacher=teacher_list, device=device)
         writer.add_scalar("Loss/val", epoch_val_loss, epoch)
         writer.add_scalar("Accuracy/val", epoch_val_acc, epoch)
         writer.add_scalar("LR", scheduler.get_last_lr()[-1], epoch)
@@ -76,18 +60,19 @@ def train(writer, cpt_path='student_res_18.cpt', patience=12, dist_alpha=0, dist
             break
         
 # trains the model for a single epoch and returns loss/acc
-def train_epoch(student: nn.Module, teacher: nn.Module, 
+def train_epoch(student: nn.Module, teachers: list[nn.Module], 
                 optimizer, scheduler, 
                 train_dl: torch.utils.data.DataLoader, distill_loss, device='cpu'):
     student.train()
-    teacher.eval()
     total_loss = 0
     total_correct = 0
     for imgs, labels in train_dl:
         imgs, labels = imgs.to(device), labels.to(device)
-        t_logits = None
+        t_logits = []
         with torch.no_grad():
-            t_logits = teacher(imgs)
+            for t in teachers:
+                t.eval()
+                t_logits.append(t(imgs))
         s_logits = student(imgs)
         # calculate acc and loss
         loss = distill_loss(s_logits, labels, t_logits)
@@ -124,15 +109,15 @@ if __name__ == "__main__":
     os.makedirs(checkpoints_folder, exist_ok=True)
     base_log_dir = './logs'
     # experiment params
-    dist_temp = 5
-    dist_alpha = 0.5
+    dist_temp = 1
+    dist_alpha = 0.3
     assert dist_alpha <= 1, "Distillation alpha should be <= 1"
     assert dist_alpha >= 0, "Distillation alpha should be >= 1"
     assert dist_temp == int(dist_temp), "Distillation temp should an integer"
     
     exp_alpha_name = get_exp_alpha_name(dist_alpha)
     #                         a=alpha............t=temp
-    exp_name = f'stu_resnet50_a_{exp_alpha_name}_t_{dist_temp}'
+    exp_name = f'stu_resnet18_multiple_a_{exp_alpha_name}_t_{dist_temp}'
     log_dir = base_log_dir + '/' + exp_name
     writer = SummaryWriter(log_dir=log_dir)
     early_stop_cpt_path = checkpoints_folder+exp_name+'.cpt'

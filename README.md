@@ -16,7 +16,14 @@ Instructions for training:
 
 ### Model Metrics
 
--   ResNet50 (Teacher): Train=94.3%, Val=90.9%
--   DenseNet (Teacher): Train=95.5%, Val=91.8%
--   GoogLenet (BlackBox Model): Train=96.6%, Val=90.9%
--   ResNet18 (Not Student): Train=96.0%, Val=91.2%
+-   ResNet50 (Teacher 1): Test=91.39%
+-   DenseNet161 (Teacher 2): Test=92.21%
+-   GoogLeNet (BlackBox Model): Test=91.26%
+-   ResNet18 (Pretrained): Test=90.1%
+-   ResNet18 (Sid Trained): Test=87.27%
+
+### Student Model Metrics
+
+-   Student V1 (Simple Teacher Switching 4 epochs, a=0, t=1) : Test=90.31%
+-   Student V2 (Joint Training, a=0, t=1) : Test=90.82%
+-   Student V2 (Joint Training, a=3, t=1) : Test=91.02%
