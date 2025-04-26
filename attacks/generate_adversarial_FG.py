@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import matplotlib.pyplot as plt
-from student import get_student
+from models.student import get_student
 
 # Define transformations
 transform = transforms.Compose([

@@ -4,8 +4,8 @@ This file handles the training of the student model
 import optuna
 import torch.nn as nn
 import torch
-from teachers import get_teachers
-from student import get_student
+from models.teachers import get_teachers
+from models.student import get_student
 from utils.get_data import get_loaders
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     os.makedirs(checkpoints_folder, exist_ok=True)
     base_log_dir = './logs'
     # experiment params
-    dist_temp = 1
+    dist_temp = 5
     dist_alpha = 0.3
     assert dist_alpha <= 1, "Distillation alpha should be <= 1"
     assert dist_alpha >= 0, "Distillation alpha should be >= 1"

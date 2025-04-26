@@ -3,9 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import matplotlib.pyplot as plt
-from student import get_student
-from teachers import get_teachers
-from blackbox import get_blackbox
+from models.student import get_student
+from models.teachers import get_teachers
+from models.blackbox import get_blackbox
 from utils.get_data import get_loaders
 from utils import get_model_metrics
 from torch.nn import CrossEntropyLoss
