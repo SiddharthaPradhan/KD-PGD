@@ -8,7 +8,7 @@ Instructions for setup:
 
 1. run `get_data.py` to download and setup CIFAR-10.
 2. Download pretrained weights for teachers and blackbox from [here](https://drive.usercontent.google.com/download?id=17fmN8eQdLpq2jIMQ_X0IXDPXfI9oVWgq&export=download&authuser=0). Extract zip inside `models` folder.
-3. run `teachers.py` to check if the weights have been loaded.
+3. run `test_models.py` to check if the weights have been loaded.
 
 Instructions for training:
 
