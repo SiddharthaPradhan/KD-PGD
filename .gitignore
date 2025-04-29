@@ -13,5 +13,6 @@ data/
 models/state_dicts
 logs/
 checkpoints/
-
-db.sqlite3
+checkpoints_*
+checkpoints.*
+db.sqlite3*

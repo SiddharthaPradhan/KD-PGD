@@ -21,7 +21,7 @@ classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 # get the ciphar-10 dataset
-def get_loaders(batch_size, num_workers):
+def get_loaders(batch_size, num_workers, val_batch_size=256):
     train_loader = torch.utils.data.DataLoader(
         datasets.CIFAR10(root='./data', train=True, transform=transforms.Compose([
             transforms.RandomCrop(32, padding=4),
@@ -37,7 +37,7 @@ def get_loaders(batch_size, num_workers):
                 transforms.ToTensor(),
                 normalize,
             ])),
-            batch_size=256, shuffle=False,
+            batch_size=val_batch_size, shuffle=False,
             num_workers=2, pin_memory=True)
     return train_loader, val_loader
 

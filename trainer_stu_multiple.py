@@ -35,7 +35,8 @@ def train(writer, cpt_path='student_res_18.cpt', patience=12, dist_alpha=0, dist
     # get ciphar-10 data
     train_dl, val_dl = get_loaders(256, 6)
     # setup optimizers and scheduler
-    learning_rate_init = 2e-3
+    learning_rate_init = 2e-3 # experiment 1
+    learning_rate_init = 0.01# experiment 2
     weight_decay = 1e-6
     optimizer = Adam(s1.parameters(), lr=learning_rate_init, weight_decay=weight_decay)
     total_steps = TRAIN_EPOCHS * len(train_dl)
@@ -109,8 +110,8 @@ if __name__ == "__main__":
     os.makedirs(checkpoints_folder, exist_ok=True)
     base_log_dir = './logs'
     # experiment params
-    dist_temp = 5
-    dist_alpha = 0.3
+    dist_alpha = 0
+    dist_temp = 1
     assert dist_alpha <= 1, "Distillation alpha should be <= 1"
     assert dist_alpha >= 0, "Distillation alpha should be >= 1"
     assert dist_temp == int(dist_temp), "Distillation temp should an integer"
@@ -121,5 +122,5 @@ if __name__ == "__main__":
     log_dir = base_log_dir + '/' + exp_name
     writer = SummaryWriter(log_dir=log_dir)
     early_stop_cpt_path = checkpoints_folder+exp_name+'.cpt'
-    train(writer, cpt_path=early_stop_cpt_path, patience=80, dist_alpha=dist_alpha, dist_temp=dist_temp)
+    train(writer, cpt_path=early_stop_cpt_path, patience=4, dist_alpha=dist_alpha, dist_temp=dist_temp)
     writer.close()

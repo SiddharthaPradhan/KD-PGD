@@ -5,6 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "grad-cam>=1.5.5",
+    "ipykernel>=6.29.5",
+    "ipython>=9.2.0",
     "matplotlib>=3.10.1",
     "numpy>=2.2.4",
     "optuna>=4.2.1",

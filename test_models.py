@@ -24,7 +24,7 @@ if __name__ == "__main__":
     student =  get_student(pretrained=False) # if we are loading a student --> pretrained=False
     # UPDATE AS NEEDED
     cpt = "checkpoints/stu_resnet18_multiple_a_03_t_1.cpt"
-    cpt = "checkpoints/resnet-18.cpt"
+    cpt = "checkpoints/resnet-18-best.cpt"
     
     student.load_state_dict(torch.load(cpt))
     

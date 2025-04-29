@@ -15,14 +15,16 @@ from models.blackbox import get_blackbox
 import torchvision
 from tqdm import tqdm
 from itertools import product
+import os
 # setup seeds and make deterministic
-seed = 42
+seed = 1234
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
 random.seed(seed)
 np.random.seed(seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
+
 
 def get_selected_images(cat_idx, plane_idx):
     # Note we are using test set as the validation set, so val --> test
@@ -40,15 +42,18 @@ def get_selected_images(cat_idx, plane_idx):
     sel_plane_img = plane_images[98]
     return sel_cat_img.unsqueeze(0), sel_plane_img.unsqueeze(0)
 
-def generate_adversarial_direction(model, image, label):
+def generate_adversarial_direction(model, image, label, device):
     """
     Generate a normalized FGSM adversarial direction.
     """
-    image.requires_grad = True
-    output = model(image)
+    model = model.to(device)
+    image = image.to(device)
+    x = image.detach().requires_grad_()
+    output = model(x)
     loss = F.cross_entropy(output, label)
+    model.zero_grad()
     loss.backward()
-    grad = image.grad.data
+    grad = x.grad.detach()
     direction = grad / torch.norm(grad)
     return direction.detach()
 
@@ -56,95 +61,82 @@ def orthogonalize_direction(base_dir, new_dir):
     """
     Make new_dir orthogonal to base_dir using Gram-Schmidt process.
     """
-    proj = (torch.sum(new_dir * base_dir) / torch.sum(base_dir * base_dir)) * base_dir
-    orth_dir = new_dir - proj
+    # proj = (torch.sum(new_dir * base_dir) / torch.sum(base_dir * base_dir)) * base_dir
+    # orth_dir = new_dir - proj
+    orth_dir = new_dir - (new_dir * base_dir).sum() * base_dir
     return orth_dir / torch.norm(orth_dir)
 
-
-def plot_boundary(img:torch.Tensor, true_label:int,
-                  models_dict:dict[str,torch.nn.Module],
-                  models_colors:dict[str, str],
-                  max_range=0.5,
-                  default_model='GoogLeNet(Blackbox)'):
+def plot_boundary(img: torch.Tensor, 
+                  true_label: int,
+                  models_dict: dict[str, torch.nn.Module],
+                  models_colors: dict[str, str],
+                  save_loc,
+                  adversarial_dir_model=get_blackbox(),
+                  max_range=60,
+                  max_steps=200,
+                  batch_size=500):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    blackbox =  get_blackbox().to(device)
-    # _, densenet_t = get_teachers()
-    # densenet_t = densenet_t.to(device)
     # get directions
-    # TODO dir1 grad direction for googlenet
-    # TODO dir2 orthogonal to dir1 with grad-smith process
-    label = torch.Tensor([true_label+3]).to(device)
-    label = label.type(torch.int64).to(device)
-    # dir1 = generate_adversarial_direction(models_dict.get(default_model), 
-    dir1 = generate_adversarial_direction(blackbox, 
-                                          img.clone().to(device), label)
+    label = torch.tensor([true_label], dtype=torch.int64, device=device)
+    dir1 = generate_adversarial_direction(adversarial_dir_model, img.clone(), label, device)
     random_noise = torch.randn_like(img).to(device)
     dir2 = orthogonalize_direction(dir1, random_noise)
     # setup grid
-    alphas = np.linspace(-max_range, max_range, 100)
-    # alphas = np.linspace(-max_range, max_range, 100)
-    betas = np.linspace(-max_range, max_range, 100)
-    # betas = np.linspace(-max_range, max_range, 100)
-    X, Y = np.meshgrid(alphas, betas) # create 2d mesh of alpha and beta values
-    fig, ax = plt.subplots()
-    true_count = 0 
-    total = 0
-    for name, model in models_dict.items():
-        model=blackbox
-        # check if model can correctly predict this image first
-        with torch.no_grad():
-            temp_img = img.to(device)
-            out = model(temp_img)
-            pred = torch.argmax(out, dim=1).item()
-            print(name, pred == true_label)
-            # collage = inv_normalize(temp_img.squeeze(0).cpu()).numpy()
-            # print(temp_img.min(), temp_img.max())
-            # plt.imshow(np.transpose(collage, (1, 2, 0)))
-            # plt.show()
-        region = np.zeros_like(X)
-        for i, j in tqdm(product(range(X.shape[0]), range(X.shape[1])), total=X.shape[0]*X.shape[1]):
-            perturbation = X[i, j] * dir1 + Y[i, j] * dir2
-            # TODO check this logic, clamping with normalization?
-            # theoretical true min= -2.0180698152
-            # theoretical true max= 2.11582568807
-            true_min = -2.0180698152
-            true_max = 2.11582568807
-            new_img = inv_normalize(img.to(device))
-            # print(perturbation.min(), perturbation.max())
-            # print(new_img.min(), new_img.max())
-            new_img = new_img + perturbation
-            new_img = torch.clamp(new_img, 0, 1)
-            # collage = new_img.squeeze(0).cpu().numpy()
-            # plt.imshow(np.transpose(collage, (1, 2, 0)))
-            # plt.show()
-            new_img = normalize(new_img)
-            new_img = torch.clamp(new_img, true_min, true_max)
-            
-            with torch.no_grad():
-                out = model(new_img)
-                pred = torch.argmax(out, dim=1).item()
-                total += 1
-                true_count += int(pred == true_label)
-            region[i, j] = (pred == true_label)
+    xs = np.linspace(-max_range, max_range, max_steps)
+    ys = np.linspace(-max_range, max_range, max_steps)
+    X, Y = np.meshgrid(xs, ys)
+    # precompute all perturbations in batch
+    X_flat = X.flatten()
+    Y_flat = Y.flatten()
+    perturbations = torch.stack([
+        x * dir1 + y * dir2
+        for x, y in zip(X_flat, Y_flat)
+    ]).squeeze(1) # (num_points, C, H, W)
+    img_base = inv_normalize(img.detach().to(device))  # (1, C, H, W)
+    perturbed_imgs = img_base + perturbations
+    perturbed_imgs = torch.clamp(perturbed_imgs, 0, 1)
+    perturbed_imgs = normalize(perturbed_imgs)  # still (num_points, C, H, W)
 
-        # add contour for current model
-        ax.contour(X, Y, region, levels=[0.5], colors=[models_colors[name]],
-                linewidths=1.5)
-    
-    print(true_count, total)
+    fig, ax = plt.subplots()
+
+    for name, model in models_dict.items():
+        model = model.eval().to(device)
+        print(f"Evaluating model: {name}")
+
+        preds = []
+        with torch.no_grad():
+            for start_idx in tqdm(range(0, perturbed_imgs.size(0), batch_size), desc=f"{name} batches"):
+                end_idx = start_idx + batch_size
+                batch = perturbed_imgs[start_idx:end_idx].to(device)
+                outputs = model(batch)
+                batch_preds = torch.argmax(outputs, dim=1)
+                preds.append(batch_preds)
+
+        preds = torch.cat(preds)  # (num_points,)
+        correct_preds = (preds == true_label).float().cpu().numpy()
+
+        # reshape to (max_steps, max_steps)
+        region = correct_preds.reshape(X.shape)
+
+        # plot contour
+        ax.contourf(X, Y, region, levels=[0.5, 1.1], colors=[models_colors[name]], alpha=0.3)
+        ax.contour(X, Y, region, levels=[0.5], colors=[models_colors[name]], linewidths=1.0)
+
+    # plot settings
     legend_lines = [Line2D([0], [0], color=color, lw=2, label=name) 
                     for name, color in models_colors.items()]
     ax.legend(handles=legend_lines)
     ax.axhline(0, color='black')
     ax.axvline(0, color='black')
     ax.set_title('Decision Boundary Visualization')
-    ax.set_xlabel('Direction 1 (pixels)')
-    ax.set_ylabel('Direction 2 (pixels)')
+    ax.set_xlabel('Random Orthogonal Dir (pixels)')
+    ax.set_ylabel('BlackBox Adversarial Dir (pixels)')
+    fig.savefig(save_loc)
     plt.grid(True)
     plt.show()
-
-
+    
 if __name__ == "__main__":
+    os.makedirs('figs/', exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # plane and cat :) for images
     cat_idx = np.argwhere(np.array(classes) == 'cat')[0,0]
@@ -156,20 +148,29 @@ if __name__ == "__main__":
     resnet_t, densenet_t = get_teachers()
     blackbox =  get_blackbox()
     
+    student =  get_student(pretrained=False) # if we are loading a student --> pretrained=False
+    # UPDATE AS NEEDED
+    cpt = "checkpoints/stu_resnet18_multiple_a_03_t_1.cpt"
+    student.load_state_dict(torch.load(cpt))
+    
     models_dict = {
-        # 'ResNet-50(Teacher-1)': resnet_t.to(device),
-        'DenseNet-161(Teacher-2)': densenet_t.to(device),
-        # 'GoogLeNet(Blackbox)': blackbox.to(device)
+        'ResNet-50(Teacher-1)': resnet_t,
+        'DenseNet-161(Teacher-2)': densenet_t,
+        'GoogLeNet(Blackbox)': blackbox,
+        'Student': student
     }
     
     models_colors = {
-        # 'ResNet-50(Teacher-1)': 'blue',
+        'ResNet-50(Teacher-1)': 'blue',
         'DenseNet-161(Teacher-2)': 'green',
-        # 'GoogLeNet(Blackbox)': 'orange',
+        'GoogLeNet(Blackbox)': 'orange',
+        'Student': 'red'
         # red for student
     }
     
-    plot_boundary(sel_cat_img, cat_idx, models_dict, models_colors)
+    save_loc = 'figs/boundary_all_stu_comb_cat.png'
+    save_loc = 'figs/test.png'
+    plot_boundary(sel_cat_img, cat_idx, models_dict, models_colors, save_loc, adversarial_dir_model=student)
     
     
 

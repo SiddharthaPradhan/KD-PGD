@@ -17,7 +17,7 @@ def get_model_metrics(model: torch.nn.Module, dataloader: torch.utils.data.DataL
             if criterion is not None:
                 if teacher is not None:
                     teacher_out = None
-                    if type(teacher) == nn.Module:
+                    if issubclass(type(teacher), torch.nn.Module):
                         teacher_out = teacher(images) # single teacher output
                     else:
                         teacher_out = [t(images) for t in teacher] # list of multiple teacher outputs
