@@ -104,12 +104,12 @@ if __name__ == "__main__":
     densenet_t = densenet_t.eval()
     # # PARAMS
     student =  get_student(pretrained=False)
-    alpha = "0"
-    temp = "1"
-    # stu_type = "_multiple" # "" for type 1, "_multiple" for type 2
-    stu_type = "" # "" for type 1, "_multiple" for type 2
-    cpt = f"checkpoints/stu_resnet18{stu_type}_a_{alpha}_t_{temp}.cpt"
-    cpt = f"checkpoints_experiment_2_bak_early_end/stu_resnet18{stu_type}_a_{alpha}_t_{temp}.cpt"
+    alpha = "03"
+    temp = "5"
+    stu_type = "_multiple" # "" for type 1, "_multiple" for type 2
+    # stu_type = "" # "" for type 1, "_multiple" for type 2
+    cpt = f"checkpoints_experiment_1/stu_resnet18{stu_type}_a_{alpha}_t_{temp}.cpt"
+    # cpt = f"checkpoints_experiment_2/stu_resnet18{stu_type}_a_{alpha}_t_{temp}.cpt"
     student.load_state_dict(torch.load(cpt))
     student = student.eval()
     # ARGS

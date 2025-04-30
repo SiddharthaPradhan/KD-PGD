@@ -12,10 +12,12 @@ import random
 from models.teachers import get_teachers
 from models.student import get_student
 from models.blackbox import get_blackbox
-import torchvision
+from torchvision import transforms
+import torchvision.transforms.functional as TTF
 from tqdm import tqdm
 from itertools import product
 import os
+from PIL import Image
 # setup seeds and make deterministic
 seed = 1234
 torch.manual_seed(seed)
@@ -25,6 +27,8 @@ np.random.seed(seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
+def scale(img_tensor, size=(200, 200)):
+    return TTF.resize(img_tensor, size, interpolation=TTF.InterpolationMode.BICUBIC)
 
 def get_selected_images(cat_idx, plane_idx):
     # Note we are using test set as the validation set, so val --> test
@@ -44,7 +48,7 @@ def get_selected_images(cat_idx, plane_idx):
 
 def generate_adversarial_direction(model, image, label, device):
     """
-    Generate a normalized FGSM adversarial direction.
+    Generate a normalized FG adversarial direction.
     """
     model = model.to(device)
     image = image.to(device)
@@ -119,18 +123,18 @@ def plot_boundary(img: torch.Tensor,
         region = correct_preds.reshape(X.shape)
 
         # plot contour
-        ax.contourf(X, Y, region, levels=[0.5, 1.1], colors=[models_colors[name]], alpha=0.3)
-        ax.contour(X, Y, region, levels=[0.5], colors=[models_colors[name]], linewidths=1.0)
+        ax.contourf(X, Y, region, levels=[0.5, 1.1], colors=[models_colors[name]], alpha=0.2)
+        ax.contour(X, Y, region, levels=[0.5], colors=[models_colors[name]], linewidths=2.0)
 
     # plot settings
     legend_lines = [Line2D([0], [0], color=color, lw=2, label=name) 
                     for name, color in models_colors.items()]
-    ax.legend(handles=legend_lines)
+    ax.legend(handles=legend_lines, loc=2)
     ax.axhline(0, color='black')
     ax.axvline(0, color='black')
     ax.set_title('Decision Boundary Visualization')
-    ax.set_xlabel('Random Orthogonal Dir (pixels)')
-    ax.set_ylabel('BlackBox Adversarial Dir (pixels)')
+    ax.set_xlabel('BlackBox Adversarial Dir (pixels)')
+    ax.set_ylabel('Random Orthogonal Dir (pixels)')
     fig.savefig(save_loc)
     plt.grid(True)
     plt.show()
@@ -138,19 +142,28 @@ def plot_boundary(img: torch.Tensor,
 if __name__ == "__main__":
     os.makedirs('figs/', exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # plane and cat :) for images
-    cat_idx = np.argwhere(np.array(classes) == 'cat')[0,0]
-    plane_idx = np.argwhere(np.array(classes) == 'plane')[0,0]
-    print(f"cat index={cat_idx}, airplane index={plane_idx}")
-    sel_cat_img, sel_plane_img = get_selected_images(cat_idx, plane_idx)
+    # # plane and cat :) for images
+    # cat_idx = np.argwhere(np.array(classes) == 'cat')[0,0]
+    # plane_idx = np.argwhere(np.array(classes) == 'plane')[0,0]
+    # print(f"cat index={cat_idx}, airplane index={plane_idx}")
+    # sel_cat_img, sel_plane_img = get_selected_images(cat_idx, plane_idx)
     
-    # TODO add selected student based on the evaluation results
+    # load in separate image
+    transform_for_model = transforms.Compose([
+        transforms.ToTensor(),
+        normalize
+    ])
+    img_real = Image.open('sample_images/mochi.jpg').convert('RGB')
+    # pass normalized 32x32 to the model to generate adv example 
+    img_32 = scale(img_real, size=(32,32))
+    img = transform_for_model(img_32).unsqueeze(0)
+    
     resnet_t, densenet_t = get_teachers()
     blackbox =  get_blackbox()
     
     student =  get_student(pretrained=False) # if we are loading a student --> pretrained=False
-    # UPDATE AS NEEDED
-    cpt = "checkpoints/stu_resnet18_multiple_a_03_t_1.cpt"
+    # Best Results Model
+    cpt = f"checkpoints_experiment_2/stu_resnet18_a_03_t_1.cpt"
     student.load_state_dict(torch.load(cpt))
     
     models_dict = {
@@ -168,9 +181,9 @@ if __name__ == "__main__":
         # red for student
     }
     
-    save_loc = 'figs/boundary_all_stu_comb_cat.png'
-    save_loc = 'figs/test.png'
-    plot_boundary(sel_cat_img, cat_idx, models_dict, models_colors, save_loc, adversarial_dir_model=student)
+    save_loc = 'figs/boundary_mochi_zoom_in.png'
+    plot_boundary(img, 3, models_dict, models_colors, save_loc, adversarial_dir_model=blackbox,
+                  max_range=6)
     
     
 
