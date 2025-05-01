@@ -43,7 +43,8 @@ def get_selected_images(cat_idx, plane_idx):
     plane_images = [plane_img for plane_img, _ in plane_subset]
     # select a good looking image for the 2 classes
     sel_cat_img = cat_images[30]
-    sel_plane_img = plane_images[98]
+    # sel_cat_img = cat_images[499]
+    sel_plane_img = plane_images[6]
     return sel_cat_img.unsqueeze(0), sel_plane_img.unsqueeze(0)
 
 def generate_adversarial_direction(model, image, label, device):
@@ -58,7 +59,11 @@ def generate_adversarial_direction(model, image, label, device):
     model.zero_grad()
     loss.backward()
     grad = x.grad.detach()
-    direction = grad / torch.norm(grad)
+    # direction = grad / torch.norm(grad)
+    grad_flat = grad.view(grad.size(0), -1)  # (B, C*H*W)
+    norm = torch.norm(grad_flat, p=2, dim=1, keepdim=True)  # (B, 1)
+    norm = norm.view(grad.size(0), 1, 1, 1) # (B, 1, 1, 1)
+    direction = grad / norm
     return direction.detach()
 
 def orthogonalize_direction(base_dir, new_dir):
@@ -93,7 +98,7 @@ def plot_boundary(img: torch.Tensor,
     X_flat = X.flatten()
     Y_flat = Y.flatten()
     perturbations = torch.stack([
-        x * dir1 + y * dir2
+        x * dir2 + y * dir1
         for x, y in zip(X_flat, Y_flat)
     ]).squeeze(1) # (num_points, C, H, W)
     img_base = inv_normalize(img.detach().to(device))  # (1, C, H, W)
@@ -104,7 +109,11 @@ def plot_boundary(img: torch.Tensor,
     fig, ax = plt.subplots()
 
     for name, model in models_dict.items():
-        model = model.eval().to(device)
+        if type(model) != list:
+            model = [model]
+        for i in range(len(model)):
+            model[i] = model[i].eval().to(device)
+
         print(f"Evaluating model: {name}")
 
         preds = []
@@ -112,7 +121,10 @@ def plot_boundary(img: torch.Tensor,
             for start_idx in tqdm(range(0, perturbed_imgs.size(0), batch_size), desc=f"{name} batches"):
                 end_idx = start_idx + batch_size
                 batch = perturbed_imgs[start_idx:end_idx].to(device)
-                outputs = model(batch)
+                outputs = 0
+                for mod in model:
+                    outputs += mod(batch)
+                outputs = outputs/len(model)
                 batch_preds = torch.argmax(outputs, dim=1)
                 preds.append(batch_preds)
 
@@ -142,21 +154,23 @@ def plot_boundary(img: torch.Tensor,
 if __name__ == "__main__":
     os.makedirs('figs/', exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # # plane and cat :) for images
-    # cat_idx = np.argwhere(np.array(classes) == 'cat')[0,0]
-    # plane_idx = np.argwhere(np.array(classes) == 'plane')[0,0]
-    # print(f"cat index={cat_idx}, airplane index={plane_idx}")
+    # plane and cat :) for images
+    cat_idx = np.argwhere(np.array(classes) == 'cat')[0,0]
+    plane_idx = np.argwhere(np.array(classes) == 'plane')[0,0]
+    dog_idx = np.argwhere(np.array(classes) == 'dog')[0,0]
+    print(f"cat index={cat_idx}, airplane index={plane_idx}")
     # sel_cat_img, sel_plane_img = get_selected_images(cat_idx, plane_idx)
+    sel_cat_img, sel_plane_img = get_selected_images(cat_idx, plane_idx)
     
     # load in separate image
     transform_for_model = transforms.Compose([
         transforms.ToTensor(),
         normalize
     ])
-    img_real = Image.open('sample_images/mochi.jpg').convert('RGB')
-    # pass normalized 32x32 to the model to generate adv example 
-    img_32 = scale(img_real, size=(32,32))
-    img = transform_for_model(img_32).unsqueeze(0)
+    # img_real = Image.open('sample_images/mochi.jpg').convert('RGB')
+    # # pass normalized 32x32 to the model to generate adv example 
+    # img_32 = scale(img_real, size=(32,32))
+    # img = transform_for_model(img_32).unsqueeze(0)
     
     resnet_t, densenet_t = get_teachers()
     blackbox =  get_blackbox()
@@ -170,6 +184,7 @@ if __name__ == "__main__":
         'ResNet-50(Teacher-1)': resnet_t,
         'DenseNet-161(Teacher-2)': densenet_t,
         'GoogLeNet(Blackbox)': blackbox,
+        'Ensemble(T1&T2)': [resnet_t, blackbox],
         'Student': student
     }
     
@@ -177,16 +192,16 @@ if __name__ == "__main__":
         'ResNet-50(Teacher-1)': 'blue',
         'DenseNet-161(Teacher-2)': 'green',
         'GoogLeNet(Blackbox)': 'orange',
+        'Ensemble(T1&T2)': 'purple',
         'Student': 'red'
         # red for student
     }
-    
-    save_loc = 'figs/boundary_mochi_zoom_in.png'
-    plot_boundary(img, 3, models_dict, models_colors, save_loc, adversarial_dir_model=blackbox,
-                  max_range=6)
-    
+
+    # save_loc = 'figs/boundary_mochi_zoom_out.png'
+    save_loc = 'figs/test_zoom_in_cat.png'
+    # save_loc = 'figs/test.png'
+    plot_boundary(sel_cat_img, cat_idx, models_dict, models_colors, save_loc, adversarial_dir_model=blackbox,
+                  max_range=10)
     
 
-
-    
 
