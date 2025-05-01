@@ -12,7 +12,12 @@ Instructions for setup:
 
 Instructions for training:
 
-1. run `train_student.py` with selected args to train the student
+-   run `train_{"type"}.py` with selected args to train the student with type={"type"}
+
+The trained weights for the students models are provided [here](https://drive.google.com/drive/folders/1PEUiJuVprx271w_Pno4J-onHww0CxH1A?usp=sharing).
+Note. Experiment 1 uses lower max lr = 1e-3, and Experiment 2 uses higher max lr = 1e-2. The main results presented in the paper are from Experiment 2.
+
+Checkpoints are saved as 'stu_resnet18\_{'type'}\_a{'alpha'}\_t\_{'tau'}.cpt'. Types = {""} for Curricula based student (Type 1) and {"multiple\*"} for student trained jointly with multiple teachers.
 
 ### Model Metrics
 
@@ -21,9 +26,3 @@ Instructions for training:
 -   GoogLeNet (BlackBox Model): Test=91.26%
 -   ResNet18 (Pretrained): Test=90.1%
 -   ResNet18 (Sid Trained): Test=87.27%
-
-### Student Model Metrics
-
--   Student V1 (Simple Teacher Switching 4 epochs, a=0, t=1) : Test=90.31%
--   Student V2 (Joint Training, a=0, t=1) : Test=90.82%
--   Student V2 (Joint Training, a=3, t=1) : Test=91.02%
